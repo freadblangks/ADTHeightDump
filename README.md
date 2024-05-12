@@ -1,5 +1,10 @@
 # ADTHeightDump
-Automatically dumps tileset metadata from World of Warcraft ADT files into a JSON file and saves it to the [Output](ADTHeightDump/tree/main/Output) folder.
+Automatically dumps tileset metadata from World of Warcraft ADT files into a JSON file and saves it to the [Output](Output) folder.
+
+## Generated Metadata
+- [Texture info by file id](Output/TextureInfoByFileId.json)
+- [Texture info by file path](Output/TextureInfoByFilePath.json)
+- [Texture info with file id and file path](Output/TextureInfoMeta.json)
 
 ## Usage
 Arguments:  `ADTHeightDump.exe <wowProd> (outputFolder)`  
