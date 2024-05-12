@@ -59,12 +59,16 @@ namespace ADTHeightDump
 
             CASC.InitCasc(null, wowProd);
 
+            int totalTex0AdtFiles = CASC.Listfile.Count(x => x.Value.EndsWith("tex0.adt"));
+            int processedTex0AdtFiles = 0;
             foreach (var file in CASC.Listfile.Where(x => x.Value.EndsWith("tex0.adt")))
             {
+                string progress = $"[{((float)processedTex0AdtFiles / totalTex0AdtFiles * 100).ToString("0.00")}%] ";
+                processedTex0AdtFiles++;
 
                 if (!CASC.FileExists((uint)file.Key))
                 {
-                    Console.WriteLine("File " + file.Key + " " + file.Value + " does not exist, skipping..");
+                    Console.WriteLine(progress + "File " + file.Key + " " + file.Value + " does not exist, skipping..");
                     continue;
                 }
 
@@ -79,7 +83,7 @@ namespace ADTHeightDump
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine("Error opening file " + file.Key + ": " + file.Value + " because of " + e.Message + ", skipping..");
+                        Console.WriteLine(progress + "Error opening file " + file.Key + ": " + file.Value + " because of " + e.Message + ", skipping..");
                         continue;
                     }
                     ms.Position = 0;
@@ -115,7 +119,7 @@ namespace ADTHeightDump
                             case ADTChunks.MAMP:
                                 break;
                             default:
-                                Console.WriteLine(string.Format("Found unknown header at offset {1} \"{0}\" while we should've already read them all!", chunkName, position));
+                                Console.WriteLine(progress + string.Format("Found unknown header at offset {1} \"{0}\" while we should've already read them all!", chunkName, position));
                                 break;
                         }
                     }
@@ -123,7 +127,7 @@ namespace ADTHeightDump
 
                 if (adtfile.texParams != null)
                 {
-                    Console.WriteLine(file.Key + " " + file.Value);
+                    Console.WriteLine(progress + file.Key + " " + file.Value);
                     for (var i = 0; i < adtfile.texParams.Length; i++)
                     {
                         var filename = "";
