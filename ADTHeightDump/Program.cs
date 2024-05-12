@@ -14,31 +14,30 @@ namespace ADTHeightDump
 
     internal class Program
     {
-        const string URL_LISTFILE = "https://github.com/wowdev/wow-listfile/releases/latest/download/community-listfile.csv";
+        private static string _listFileUrl = "https://github.com/wowdev/wow-listfile/releases/latest/download/community-listfile.csv";
 
         static void Main(string[] args)
         {
             if (args.Length < 1)
             {
-                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (wowDir)\nExample online mode: ADTHeightDump.exe wowt\nExample local mode: ADTHeightDump.exe wowt \"C:\\World of Warcraft\"");
+                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (wowDir) (listFileUrl)\nExample online mode: ADTHeightDump.exe wowt\nExample local mode: ADTHeightDump.exe wowt \"C:\\World of Warcraft\"");
                 Environment.Exit(-1);
             }
 
             var wowProd = args[0];
 
             string? wowDir = null;
-            if (args.Length == 2)
-            {
+            if (args.Length == 2 && !string.IsNullOrEmpty(args[1]))
                 wowDir = args[1];
-            }
+
+            if (args.Length == 3 && !string.IsNullOrEmpty(args[2]))
+                _listFileUrl = args[2];
 
             var texDetails = new Dictionary<string, TextureInfo>();
 
             // Download listfile if it doesn't exist or older than 6 hours
             if (!File.Exists("listfile.csv") || (DateTime.Now - File.GetLastWriteTime("listfile.csv")).TotalHours >= 6)
-            {
                 DownloadListFile();
-            }
 
             // Load TACT keys in case there are encrypted maps
             CASC.LoadKeys();
@@ -82,7 +81,8 @@ namespace ADTHeightDump
                         switch (chunkName)
                         {
                             case ADTChunks.MVER:
-                                if (bin.ReadUInt32() != 18) { throw new Exception("Unsupported ADT version!"); }
+                                if (bin.ReadUInt32() != 18)
+                                    throw new Exception("Unsupported ADT version!");
                                 break;
                             case ADTChunks.MTEX:
                                 adtfile.textures = ReadMTEXChunk(chunkSize, bin);
@@ -234,11 +234,11 @@ namespace ADTHeightDump
 
         private static void DownloadListFile()
         {
-            Console.WriteLine("Downloading listfile from " + URL_LISTFILE);
-            using (var s = (new WebClient()).OpenRead(URL_LISTFILE))
-            using (var sr = new StreamReader(s))
+            Console.WriteLine("Downloading listfile from " + _listFileUrl);
+            using (var stream = new WebClient().OpenRead(_listFileUrl))
+            using (var streamReader = new StreamReader(stream))
             {
-                File.WriteAllText("listfile.csv", sr.ReadToEnd());
+                File.WriteAllText("listfile.csv", streamReader.ReadToEnd());
             }
         }
     }
