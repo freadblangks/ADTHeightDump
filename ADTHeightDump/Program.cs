@@ -59,6 +59,18 @@ namespace ADTHeightDump
 
             CASC.InitCasc(null, wowProd);
 
+            Dictionary<string, string> lastRun = new Dictionary<string, string>();
+            if (File.Exists("cache/ADTHeightDump.lastRun.json"))
+                lastRun = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText("cache/ADTHeightDump.lastRun.json"));
+
+            if (lastRun.ContainsKey(wowProd) && lastRun[wowProd] == CASC.BuildName)
+            {
+                Console.WriteLine("No new build detected, skipping..");
+                return;
+            }
+
+            lastRun[wowProd] = CASC.BuildName;
+
             int totalTex0AdtFiles = CASC.Listfile.Count(x => x.Value.EndsWith("tex0.adt"));
             int processedTex0AdtFiles = 0;
             foreach (var file in CASC.Listfile.Where(x => x.Value.EndsWith("tex0.adt")))
@@ -191,6 +203,7 @@ namespace ADTHeightDump
             }
 
             SaveTextureSettings(texDetails);
+            File.WriteAllText("cache/ADTHeightDump.lastRun.json", JsonSerializer.Serialize(lastRun));
         }
 
         private static MTEX ReadMTEXChunk(uint size, BinaryReader bin)
@@ -258,7 +271,7 @@ namespace ADTHeightDump
         private static void SaveTextureSettings(TextureInfoMeta texDetails)
         {
             Console.WriteLine("Saving " + texDetails.TextureInfoByFileId.Count + " texture settings to " + _outputFolder);
-            var textureInfoMetaJson = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true});
+            var textureInfoMetaJson = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_outputFolder + _textureInfoMetaFileName, textureInfoMetaJson);
 
             var textureInfoByFileIdJson = JsonSerializer.Serialize(texDetails.TextureInfoByFileId, new JsonSerializerOptions { WriteIndented = true });
