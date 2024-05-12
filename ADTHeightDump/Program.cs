@@ -12,34 +12,42 @@ namespace ADTHeightDump
         public float HeightOffset { get; set; }
     }
 
+    public class TextureInfoMeta
+    {
+        public Dictionary<uint, TextureInfo> TextureInfoByFileId = new Dictionary<uint, TextureInfo>();
+        public Dictionary<string, TextureInfo> TextureInfoByFilePath = new Dictionary<string, TextureInfo>();
+    }
+
     internal class Program
     {
-        private static string _outputFile = "TextureSettings.json";
+        private static string _outputFolder = "." + Path.DirectorySeparatorChar;
         private static string _listFileUrl = "https://github.com/wowdev/wow-listfile/releases/latest/download/community-listfile.csv";
+
+        private static string _textureInfoMetaFileName = Path.DirectorySeparatorChar + "TextureInfoMeta.json";
+        private static string _textureInfoByFileIdFileName = Path.DirectorySeparatorChar + "TextureInfoByFileId.json";
+        private static string _textureInfoByFilePathFileName = Path.DirectorySeparatorChar + "TextureInfoByFilePath.json";
 
         static void Main(string[] args)
         {
             if (args.Length < 1)
             {
-                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (wowDir) (listFileUrl) (outputFile)\nExample online mode: ADTHeightDump.exe wowt\nExample local mode: ADTHeightDump.exe wowt \"C:\\World of Warcraft\"");
+                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (outputFile)\nExample online mode: ADTHeightDump.exe wowt TextureSettings.json");
                 Environment.Exit(-1);
             }
 
             var wowProd = args[0];
-
-            string? wowDir = null;
             if (args.Length == 2 && !string.IsNullOrEmpty(args[1]))
-                wowDir = args[1];
+                _outputFolder = args[1];
 
-            if (args.Length == 3 && !string.IsNullOrEmpty(args[2]))
-                _listFileUrl = args[2];
+            _outputFolder = _outputFolder.TrimEnd(new char[] { '/', '\\' });
 
-            if (args.Length == 4 && !string.IsNullOrEmpty(args[3]))
-                _outputFile = args[3];
+            if (!Directory.Exists(_outputFolder))
+                Directory.CreateDirectory(_outputFolder);
 
-            var texDetails = new Dictionary<string, TextureInfo>();
-            if (File.Exists(_outputFile))
-                texDetails = JsonSerializer.Deserialize<Dictionary<string, TextureInfo>>(File.ReadAllText(_outputFile));
+            var textureInfoMetaFilePath = _outputFolder + _textureInfoMetaFileName;
+            var texDetails = new TextureInfoMeta();
+            if (File.Exists(textureInfoMetaFilePath))
+                texDetails = JsonSerializer.Deserialize<TextureInfoMeta>(File.ReadAllText(textureInfoMetaFilePath));
 
             // Download listfile if it doesn't exist or older than 6 hours
             if (!File.Exists("listfile.csv") || (DateTime.Now - File.GetLastWriteTime("listfile.csv")).TotalHours >= 6)
@@ -48,7 +56,7 @@ namespace ADTHeightDump
             // Load TACT keys in case there are encrypted maps
             CASC.LoadKeys();
 
-            CASC.InitCasc(wowDir, wowProd);
+            CASC.InitCasc(null, wowProd);
 
             foreach (var file in CASC.Listfile.Where(x => x.Value.EndsWith("tex0.adt")))
             {
@@ -132,59 +140,52 @@ namespace ADTHeightDump
                         if (adtfile.heightTextureFileDataIDs == null || adtfile.heightTextureFileDataIDs[i] == 0)
                             continue;
 
-                        if (!texDetails.ContainsKey(filename))
+                        texDetails.TextureInfoByFilePath[filename] = new TextureInfo
                         {
-                            texDetails.Add(filename, new TextureInfo
-                            {
-                                Scale = (int)(mtxp.flags >> 4),
-                                HeightScale = mtxp.height,
-                                HeightOffset = mtxp.offset
-                            });
-                        }
-                        else
-                        {
-                            if (texDetails[filename].Scale != (int)(mtxp.flags >> 4))
-                            {
-                                Console.WriteLine("Warning! Scale mismatch for " + filename + " " + texDetails[filename].Scale + " " + (int)(mtxp.flags >> 4));
-                            }
-                            if (texDetails[filename].HeightScale != mtxp.height)
-                            {
-                                Console.WriteLine("Warning! HeightScale mismatch for " + filename + " " + texDetails[filename].HeightScale + " " + mtxp.height);
-                            }
-                            if (texDetails[filename].HeightOffset != mtxp.offset)
-                            {
-                                Console.WriteLine("Warning! HeightOffset mismatch for " + filename + " " + texDetails[filename].HeightOffset + " " + mtxp.offset);
-                            }
+                            Scale = (int)(mtxp.flags >> 4),
+                            HeightScale = mtxp.height,
+                            HeightOffset = mtxp.offset
+                        };
 
-                            texDetails[filename] = new TextureInfo
-                            {
-                                Scale = (int)(mtxp.flags >> 4),
-                                HeightScale = mtxp.height,
-                                HeightOffset = mtxp.offset
-                            };
-                        }
+                        texDetails.TextureInfoByFileId[adtfile.heightTextureFileDataIDs[i]] = new TextureInfo
+                        {
+                            Scale = (int)(mtxp.flags >> 4),
+                            HeightScale = mtxp.height,
+                            HeightOffset = mtxp.offset
+                        };
                     }
                 }
+
+                // save every 100 entries
+                if (texDetails.TextureInfoByFilePath.Count > 0 && texDetails.TextureInfoByFilePath.Count % 25 == 0)
+                    SaveTextureSettings(texDetails);
             }
 
             Console.WriteLine("Adding tilesets from listfile starting with tileset and ending in _h.blp with default values (can be wrong)");
             foreach (var file in CASC.Listfile.Where(x => x.Value.EndsWith("_h.blp") && x.Value.StartsWith("tileset")))
             {
                 var basename = file.Value.Replace("_h.blp", ".blp");
-                if (!texDetails.ContainsKey(basename))
+                TextureInfo textureInfo = new TextureInfo
+                {
+                    Scale = 1,
+                    HeightScale = 6,
+                    HeightOffset = 1
+                };
+
+                if (!texDetails.TextureInfoByFilePath.ContainsKey(basename))
                 {
                     Console.WriteLine("Adding " + file.Value + " from listfile as " + basename);
-                    texDetails[basename] = new TextureInfo
-                    {
-                        Scale = 1,
-                        HeightScale = 6,
-                        HeightOffset = 1
-                    };
+                    texDetails.TextureInfoByFilePath[basename] = textureInfo;
+                }
+
+                if (!texDetails.TextureInfoByFileId.ContainsKey((uint)file.Key))
+                {
+                    Console.WriteLine("Adding " + file.Value + " from listfile as " + basename);
+                    texDetails.TextureInfoByFileId[(uint)file.Key] = textureInfo;
                 }
             }
 
-            var json = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_outputFile, json);
+            SaveTextureSettings(texDetails);
         }
 
         private static MTEX ReadMTEXChunk(uint size, BinaryReader bin)
@@ -246,6 +247,20 @@ namespace ADTHeightDump
             {
                 File.WriteAllText("listfile.csv", streamReader.ReadToEnd());
             }
+        }
+
+        private static void SaveTextureSettings(TextureInfoMeta texDetails)
+        {
+            Console.WriteLine("Saving " + texDetails.TextureInfoByFileId.Count + " texture settings to " + _outputFolder);
+            var textureInfoMetaJson = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_outputFolder + _textureInfoMetaFileName, textureInfoMetaJson);
+
+            var textureInfoByFileIdJson = JsonSerializer.Serialize(texDetails.TextureInfoByFileId, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_outputFolder + _textureInfoByFileIdFileName, textureInfoByFileIdJson);
+
+            var textureInfoByFilePathJson = JsonSerializer.Serialize(texDetails.TextureInfoByFilePath, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_outputFolder + _textureInfoByFilePathFileName, textureInfoByFilePathJson);
+
         }
     }
 }
