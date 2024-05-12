@@ -1,4 +1,4 @@
-name: Generate Meta files
+name: Dump ADT Height
 
 on: 
   workflow_dispatch:
@@ -27,6 +27,14 @@ jobs:
         run: |
           cd /home/runner/work/ADTHeightDump/ADTHeightDump/release/
           dotnet ADTHeightDump.dll wow /home/runner/work/ADTHeightDump/ADTHeightDump/Output/
+      - name: Delete previous casc cache
+        if: ${{ steps.casc-cache-restore.outputs.cache-hit }} 
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "casc-cache" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_TOKEN }}
       - name: Save casc cache
         id: casc-cache-save
         uses: actions/cache/save@v4
