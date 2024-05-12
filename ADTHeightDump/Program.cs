@@ -5,6 +5,7 @@ using System.Text.Json;
 
 namespace ADTHeightDump
 {
+    [Serializable]
     public class TextureInfo
     {
         public int Scale { get; set; }
@@ -12,10 +13,11 @@ namespace ADTHeightDump
         public float HeightOffset { get; set; }
     }
 
+    [Serializable]
     public class TextureInfoMeta
     {
-        public Dictionary<uint, TextureInfo> TextureInfoByFileId = new Dictionary<uint, TextureInfo>();
-        public Dictionary<string, TextureInfo> TextureInfoByFilePath = new Dictionary<string, TextureInfo>();
+        public Dictionary<uint, TextureInfo> TextureInfoByFileId { get; set; } = new Dictionary<uint, TextureInfo>();
+        public Dictionary<string, TextureInfo> TextureInfoByFilePath { get; set; } = new Dictionary<string, TextureInfo>();
     }
 
     internal class Program
@@ -156,7 +158,11 @@ namespace ADTHeightDump
                     }
                 }
 
-                // save every 100 entries
+                // TESTING
+                if (texDetails.TextureInfoByFilePath.Count >= 1)
+                    break;
+
+                // save every 25 entries
                 if (texDetails.TextureInfoByFilePath.Count > 0 && texDetails.TextureInfoByFilePath.Count % 25 == 0)
                     SaveTextureSettings(texDetails);
             }
@@ -252,7 +258,7 @@ namespace ADTHeightDump
         private static void SaveTextureSettings(TextureInfoMeta texDetails)
         {
             Console.WriteLine("Saving " + texDetails.TextureInfoByFileId.Count + " texture settings to " + _outputFolder);
-            var textureInfoMetaJson = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true });
+            var textureInfoMetaJson = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true});
             File.WriteAllText(_outputFolder + _textureInfoMetaFileName, textureInfoMetaJson);
 
             var textureInfoByFileIdJson = JsonSerializer.Serialize(texDetails.TextureInfoByFileId, new JsonSerializerOptions { WriteIndented = true });
