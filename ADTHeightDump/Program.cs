@@ -1,5 +1,4 @@
 ﻿using CASCLib;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -158,10 +157,6 @@ namespace ADTHeightDump
                     }
                 }
 
-                // TESTING
-                if (texDetails.TextureInfoByFilePath.Count >= 1)
-                    break;
-
                 // save every 25 entries
                 if (texDetails.TextureInfoByFilePath.Count > 0 && texDetails.TextureInfoByFilePath.Count % 25 == 0)
                     SaveTextureSettings(texDetails);
@@ -248,10 +243,11 @@ namespace ADTHeightDump
         private static void DownloadListFile()
         {
             Console.WriteLine("Downloading listfile from " + _listFileUrl);
-            using (var stream = new WebClient().OpenRead(_listFileUrl))
-            using (var streamReader = new StreamReader(stream))
+            using (var stream = new HttpClient().GetStreamAsync(_listFileUrl).Result)
+            using (var file = File.Create("listfile.csv"))
+            using (var writer = new StreamWriter(file))
             {
-                File.WriteAllText("listfile.csv", streamReader.ReadToEnd());
+                stream.CopyTo(file);
             }
         }
 
