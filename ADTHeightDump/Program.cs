@@ -14,13 +14,14 @@ namespace ADTHeightDump
 
     internal class Program
     {
+        private static string _outputFile = "TextureSettings.json";
         private static string _listFileUrl = "https://github.com/wowdev/wow-listfile/releases/latest/download/community-listfile.csv";
 
         static void Main(string[] args)
         {
             if (args.Length < 1)
             {
-                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (wowDir) (listFileUrl)\nExample online mode: ADTHeightDump.exe wowt\nExample local mode: ADTHeightDump.exe wowt \"C:\\World of Warcraft\"");
+                Console.WriteLine("Usage: ADTHeightDump.exe <wowProd> (wowDir) (listFileUrl) (outputFile)\nExample online mode: ADTHeightDump.exe wowt\nExample local mode: ADTHeightDump.exe wowt \"C:\\World of Warcraft\"");
                 Environment.Exit(-1);
             }
 
@@ -33,7 +34,12 @@ namespace ADTHeightDump
             if (args.Length == 3 && !string.IsNullOrEmpty(args[2]))
                 _listFileUrl = args[2];
 
+            if (args.Length == 4 && !string.IsNullOrEmpty(args[3]))
+                _outputFile = args[3];
+
             var texDetails = new Dictionary<string, TextureInfo>();
+            if (File.Exists(_outputFile))
+                texDetails = JsonSerializer.Deserialize<Dictionary<string, TextureInfo>>(File.ReadAllText(_outputFile));
 
             // Download listfile if it doesn't exist or older than 6 hours
             if (!File.Exists("listfile.csv") || (DateTime.Now - File.GetLastWriteTime("listfile.csv")).TotalHours >= 6)
@@ -178,7 +184,7 @@ namespace ADTHeightDump
             }
 
             var json = JsonSerializer.Serialize(texDetails, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText("texinfo.json", json);
+            File.WriteAllText(_outputFile, json);
         }
 
         private static MTEX ReadMTEXChunk(uint size, BinaryReader bin)
