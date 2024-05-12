@@ -16,7 +16,7 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Publish
-        run: dotnet publish -c Release -o release
+        run: dotnet publish -c Release -o release --framework net7.0
       - name: Restore casc cache
         id: casc-cache-restore
         uses: actions/cache/restore@v4
@@ -25,7 +25,7 @@ jobs:
           key: casc-cache
       - name: Run
         run: |
-          cd ADTHeightDump/ADTHeightDump/release/
+          cd /home/runner/work/ADTHeightDump/ADTHeightDump/release/
           dotnet ADTHeightDump.dll wow /home/runner/work/ADTHeightDump/ADTHeightDump/Output/
       - name: Commit & Push changes
         uses: actions-js/push@master
