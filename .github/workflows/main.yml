@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generateMeta:
+  dumpAdtHeight:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4      
@@ -21,19 +21,19 @@ jobs:
         id: casc-cache-restore
         uses: actions/cache/restore@v4
         with:
-          path: ADTHeightDump/ADTHeightDump/release/cache
+          path: /home/runner/work/ADTHeightDump/ADTHeightDump/release/cache
           key: casc-cache
       - name: Run
         run: |
           cd /home/runner/work/ADTHeightDump/ADTHeightDump/release/
           dotnet ADTHeightDump.dll wow /home/runner/work/ADTHeightDump/ADTHeightDump/Output/
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.ACTION_TOKEN }}
       - name: Save casc cache
         id: casc-cache-save
         uses: actions/cache/save@v4
         with:
-          path: ADTHeightDump/ADTHeightDump/release/cache
+          path: /home/runner/work/ADTHeightDump/ADTHeightDump/release/cache
           key: casc-cache
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.ACTION_TOKEN }}
