@@ -1,4 +1,5 @@
 ﻿using CASCLib;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -10,8 +11,11 @@ namespace ADTHeightDump
         public float HeightScale { get; set; }
         public float HeightOffset { get; set; }
     }
+
     internal class Program
     {
+        const string URL_LISTFILE = "https://github.com/wowdev/wow-listfile/releases/latest/download/community-listfile.csv";
+
         static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -29,6 +33,12 @@ namespace ADTHeightDump
             }
 
             var texDetails = new Dictionary<string, TextureInfo>();
+
+            // Download listfile if it doesn't exist or older than 6 hours
+            if (!File.Exists("listfile.csv") || (DateTime.Now - File.GetLastWriteTime("listfile.csv")).TotalHours >= 6)
+            {
+                DownloadListFile();
+            }
 
             // Load TACT keys in case there are encrypted maps
             CASC.LoadKeys();
@@ -53,7 +63,7 @@ namespace ADTHeightDump
                     {
                         CASC.GetFileByID((uint)file.Key).CopyTo(ms);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Console.WriteLine("Error opening file " + file.Key + ": " + file.Value + " because of " + e.Message + ", skipping..");
                         continue;
@@ -109,7 +119,7 @@ namespace ADTHeightDump
 
                         if (adtfile.textures.filenames != null)
                             filename = adtfile.textures.filenames[i];
-                 
+
                         if (mtxp.height == 0 && mtxp.offset == 1)
                             continue;
 
@@ -220,6 +230,16 @@ namespace ADTHeightDump
             }
 
             return txparams;
+        }
+
+        private static void DownloadListFile()
+        {
+            Console.WriteLine("Downloading listfile from " + URL_LISTFILE);
+            using (var s = (new WebClient()).OpenRead(URL_LISTFILE))
+            using (var sr = new StreamReader(s))
+            {
+                File.WriteAllText("listfile.csv", sr.ReadToEnd());
+            }
         }
     }
 }
