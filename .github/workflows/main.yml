@@ -44,4 +44,5 @@ jobs:
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
+          rebase: true
           github_token: ${{ secrets.ACTION_TOKEN }}
