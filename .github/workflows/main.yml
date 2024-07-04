@@ -1,0 +1,48 @@
+name: Dump ADT Height
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  dumpAdtHeight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4      
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+      - name: Publish
+        run: dotnet publish -c Release -o release --framework net7.0
+      - name: Restore casc cache
+        id: casc-cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: /home/runner/work/ADTHeightDump/ADTHeightDump/release/cache
+          key: casc-cache
+      - name: Run
+        run: |
+          cd /home/runner/work/ADTHeightDump/ADTHeightDump/release/
+          dotnet ADTHeightDump.dll wow /home/runner/work/ADTHeightDump/ADTHeightDump/Output/
+      - name: Delete previous casc cache
+        if: ${{ steps.casc-cache-restore.outputs.cache-hit }} 
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "casc-cache" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_TOKEN }}
+      - name: Save casc cache
+        id: casc-cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/work/ADTHeightDump/ADTHeightDump/release/cache
+          key: casc-cache
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          rebase: true
+          github_token: ${{ secrets.ACTION_TOKEN }}

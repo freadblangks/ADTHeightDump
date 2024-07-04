@@ -151,7 +151,7 @@ namespace ADTHeightDump
             }
         }
 
-         public static bool FileExists(uint filedataid)
+        public static bool FileExists(uint filedataid)
         {
             return cascHandler.FileExists((int)filedataid);
         }
